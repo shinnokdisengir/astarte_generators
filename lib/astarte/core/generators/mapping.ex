@@ -38,7 +38,7 @@ defmodule Astarte.Core.Generators.Mapping do
           :prefix => String.t(),
           :reliability => :unreliable | :guaranteed | :unique,
           optional(:retention) => :discard | :volatile | :stored
-        }) :: StreamData.t(%Mapping{})
+        }) :: StreamData.t(Mapping.t())
   def mapping(config) do
     gen all(
           required <- required_fields(config),

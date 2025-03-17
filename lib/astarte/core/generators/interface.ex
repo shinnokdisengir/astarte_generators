@@ -33,7 +33,7 @@ defmodule Astarte.Core.Generators.Interface do
 
   https://github.com/astarte-platform/astarte_core/blob/master/lib/astarte_core/interface.ex
   """
-  @spec interface() :: StreamData.t(%Interface{})
+  @spec interface() :: StreamData.t(Interface.t())
   def interface() do
     gen all(
           required <- required_fields(),
