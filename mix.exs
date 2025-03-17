@@ -53,6 +53,7 @@ defmodule Astarte.Core.Generators.MixProject do
       {:stream_data, "~> 1.1"},
       # Test section
       {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test}
     ]
