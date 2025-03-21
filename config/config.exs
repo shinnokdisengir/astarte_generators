@@ -16,3 +16,11 @@
 #
 
 import Config
+
+config :stream_data,
+  max_runs: 100
+
+config :ex_unit,
+  timeout: 10_000
+
+import_config "#{config_env()}.exs"
