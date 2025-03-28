@@ -25,6 +25,7 @@ defmodule Astarte.Core.Generators.MixProject do
       version: "0.1.0",
       elixir: "~> 1.15.7",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps() ++ astarte_required_modules(),
       package: package(),
       dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())]
@@ -44,6 +45,8 @@ defmodule Astarte.Core.Generators.MixProject do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["test/astarte/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
   defp dialyzer_cache_directory(:ci), do: "dialyzer_cache"
   defp dialyzer_cache_directory(_), do: nil
 

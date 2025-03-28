@@ -22,22 +22,20 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   """
   use ExUnit.Case, async: true
   use ExUnitProperties
+  use Astarte.Cases.Changeset
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Interface
-  alias Ecto.Changeset
 
   @moduletag :interface
+  @moduletag schema_module: Astarte.Core.Interface
 
   @doc """
   Property test for Astarte Interface generator.
   """
   describe "interface generator" do
-    property "validate interface" do
+    property "validate interface", %{validate_entity: validate_entity} do
       check all(interface <- InterfaceGenerator.interface()) do
-        %Changeset{valid?: valid, errors: errors} = Interface.changeset(interface)
-
-        assert valid, "Invalid interface: " <> (errors |> Enum.join(", "))
+        assert match?({:ok, _}, validate_entity.(interface))
       end
     end
   end
