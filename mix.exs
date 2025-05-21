@@ -27,9 +27,13 @@ defmodule Astarte.Core.Generators.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps() ++ astarte_required_modules(),
       package: package(),
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())]
+      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      elixirc_paths: elixirc_paths(Mix.env())
     ]
   end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do

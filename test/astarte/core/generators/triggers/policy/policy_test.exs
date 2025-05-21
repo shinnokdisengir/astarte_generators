@@ -68,6 +68,7 @@ defmodule Astarte.Core.Generators.Triggers.PolicyTest do
 
     %Policy{}
     |> Policy.changeset(changes)
+    |> ErrorRange.validate()
   end
 
   defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
