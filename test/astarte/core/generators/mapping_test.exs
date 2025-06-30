@@ -1,4 +1,3 @@
-#
 # This file is part of Astarte.
 #
 # Copyright 2025 SECO Mind Srl
@@ -17,13 +16,12 @@
 #
 
 defmodule Astarte.Core.Generators.MappingTest do
-  @moduledoc """
-  Tests for Astarte Mapping generator.
-  """
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+  alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
   @moduletag :core
@@ -34,10 +32,27 @@ defmodule Astarte.Core.Generators.MappingTest do
     @describetag :success
     @describetag :ut
 
-    property "mapping/0" do
-      check all mapping <- MappingGenerator.mapping() do
-        %Mapping{}
-        |> Mapping.changeset(changes)
+    defp gen_mapping_changes(interface_type),
+      do:
+        MappingGenerator.mapping(interface_type: interface_type)
+        |> MappingGenerator.to_changes()
+
+    property "generates valid mapping" do
+      check all %Interface{
+                  name: interface_name,
+                  major_version: interface_major,
+                  interface_id: interface_id,
+                  type: interface_type
+                } <- InterfaceGenerator.interface(),
+                changes <- gen_mapping_changes(interface_type),
+                opts = [
+                  interface_name: interface_name,
+                  interface_major: interface_major,
+                  interface_id: interface_id,
+                  interface_type: interface_type
+                ] do
+        changeset = Mapping.changeset(%Mapping{}, changes, opts)
+        assert changeset.valid?, "Invalid mapping: #{inspect(changeset, structs: false)}"
       end
     end
   end
