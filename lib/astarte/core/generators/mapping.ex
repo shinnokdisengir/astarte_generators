@@ -22,35 +22,49 @@ defmodule Astarte.Core.Generators.Mapping do
 
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
-  use ExUnitProperties
   use Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   @doc """
   Generates a Mapping struct.
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
-  @spec mapping(
-          :datastream | :properties,
-          %{
-            :aggregation => :individual | :object,
-            :allow_unset => boolean(),
-            :expiry => non_neg_integer(),
-            :explicit_timestamp => boolean(),
-            :prefix => String.t(),
-            :reliability => :unreliable | :guaranteed | :unique,
-            optional(:retention) => :discard | :volatile | :stored
-          },
-          Keyword.t()
-        ) :: StreamData.t(Mapping.t())
-  def mapping(interface_type \\ :datastream, config, params \\ []) do
-    gen all(
-          required <- required_fields(config, params),
-          database_retention <- database_retention_fields(interface_type, params),
-          optional <- optional_fields(config, params)
-        ) do
-      fields = Enum.reduce([required, database_retention, optional], &Map.merge/2)
+
+  # @spec mapping(
+  #         :datastream | :properties,
+  #         %{
+  #           :aggregation => :individual | :object,
+  #           :allow_unset => boolean(),
+  #           :expiry => non_neg_integer(),
+  #           :explicit_timestamp => boolean(),
+  #           :prefix => String.t(),
+  #           :reliability => :unreliable | :guaranteed | :unique,
+  #           optional(:retention) => :discard | :volatile | :stored
+  #         },
+  #         Keyword.t()
+  #       ) :: StreamData.t(Mapping.t())
+  # def mapping(interface_type \\ :datastream, config, params \\ []) do
+  #   gen all(
+  #         required <- required_fields(config, params),
+  #         database_retention <- database_retention_fields(interface_type, params),
+  #         optional <- optional_fields(config, params)
+  #       ) do
+  #     fields = Enum.reduce([required, database_retention, optional], &Map.merge/2)
+  #     struct(Mapping, fields)
+  #   end
+  # end
+
+  def mapping(params \\ []) do
+    config =
+      params gen all interface_type <- InterfaceGenerator.type(),
+                     params: params do
+      end
+
+    gen all a <- string(:ascii) do
+      fields = %{a: a}
+
       struct(Mapping, fields)
     end
   end

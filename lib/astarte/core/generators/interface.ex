@@ -36,7 +36,7 @@ defmodule Astarte.Core.Generators.Interface do
 
   https://github.com/astarte-platform/astarte_core/blob/master/lib/astarte_core/interface.ex
   """
-  @spec interface(params :: Keyword.t()) :: StreamData.t(Interface.t())
+  @spec interface(params :: keyword()) :: StreamData.t(Interface.t())
   def interface(params \\ []) do
     gen all required <- required_fields(params),
             optional <- optional_fields(params) do
@@ -46,12 +46,26 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp id, do: repeatedly(&UUID.bingenerate/0)
 
-  defp name do
+  @doc """
+  Generates a valid Astarte Interface name.
+
+  https://docs.astarte-platform.org/astarte/latest/030-interface.html#name-limitations
+  """
+  @spec name() :: StreamData.t(String.t())
+  def name do
     gen all optional_part <- name_optional(),
             required_part <- name_required(optional_part) do
       optional_part <> required_part
     end
   end
+
+  @doc """
+  Generates a valid Astarte Interface type.
+
+  https://docs.astarte-platform.org/astarte/latest/030-interface.html#interface-type
+  """
+  @spec type() :: StreamData.t(String.t())
+  def type, do: member_of([:datastream, :properties])
 
   defp minor_version(major_version) do
     case major_version do
@@ -59,8 +73,6 @@ defmodule Astarte.Core.Generators.Interface do
       _n -> integer(0..255)
     end
   end
-
-  defp type, do: member_of([:datastream, :properties])
 
   defp ownership, do: member_of([:device, :server])
 
@@ -71,8 +83,12 @@ defmodule Astarte.Core.Generators.Interface do
     )
   end
 
-  defp aggregation(%{type: :properties}), do: constant(:individual)
-  defp aggregation(_), do: member_of([:individual, :object])
+  @doc """
+  Generate interface aggregation
+  """
+  @spec aggregation(any()) :: StreamData.t(atom())
+  def aggregation(%{type: :properties}), do: constant(:individual)
+  def aggregation(_), do: member_of([:individual, :object])
 
   defp description do
     string(:ascii, min_length: 1, max_length: 1000)
@@ -125,15 +141,19 @@ defmodule Astarte.Core.Generators.Interface do
                    allow_unset <- allow_unset_for(type),
                    explicit_timestamp <- explicit_timestamp_for(type),
                    mappings <-
-                     mappings(type, %{
-                       aggregation: aggregation,
-                       prefix: prefix,
-                       retention: retention,
-                       reliability: reliability,
-                       expiry: expiry,
-                       allow_unset: allow_unset,
-                       explicit_timestamp: explicit_timestamp
-                     }, params),
+                     mappings(
+                       type,
+                       %{
+                         aggregation: aggregation,
+                         prefix: prefix,
+                         retention: retention,
+                         reliability: reliability,
+                         expiry: expiry,
+                         allow_unset: allow_unset,
+                         explicit_timestamp: explicit_timestamp
+                       },
+                       params
+                     ),
                    params: params do
       %{
         id: id,

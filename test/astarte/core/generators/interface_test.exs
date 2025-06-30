@@ -26,6 +26,7 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Interface
 
+  @moduletag :core
   @moduletag :interface
 
   defp mapping_changes(:properties, mapping) do
