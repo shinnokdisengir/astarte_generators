@@ -1,4 +1,3 @@
-#
 # This file is part of Astarte.
 #
 # Copyright 2025 SECO Mind Srl
