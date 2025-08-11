@@ -23,8 +23,10 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
+
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   @moduletag :core
   @moduletag :interface
@@ -48,6 +50,18 @@ defmodule Astarte.Core.Generators.InterfaceTest do
                 changes <- InterfaceGenerator.to_changes(interface),
                 changeset = Interface.changeset(%Interface{}, changes) do
         assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
+      end
+    end
+
+    property "validate endpoints in aggregation :object must be the same" do
+      check all %Interface{mappings: mappings} <-
+                  InterfaceGenerator.interface(aggregation: :object),
+                endpoints =
+                  mappings
+                  |> Stream.map(fn %Mapping{endpoint: endpoint} -> endpoint end)
+                  |> Stream.map(&Regex.replace(~r"/[^/]+$", &1, ""))
+                  |> Enum.to_list() do
+        assert 1 == endpoints |> Enum.uniq() |> length()
       end
     end
 

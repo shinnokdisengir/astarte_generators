@@ -101,14 +101,13 @@ defmodule Astarte.Core.Generators.Mapping do
   """
   @spec endpoint() :: StreamData.t(String.t())
   def endpoint do
-    gen all prefix <- endpoint_segment(),
-            segments <-
+    gen all segments <-
               frequency([
                 {3, endpoint_segment()},
                 {1, endpoint_segment_param()}
               ])
               |> list_of(min_length: 1, max_length: 5) do
-      "/" <> prefix <> "/" <> Enum.join(segments, "/")
+      "/" <> Enum.join(segments, "/")
     end
   end
 

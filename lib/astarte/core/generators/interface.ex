@@ -47,7 +47,7 @@ defmodule Astarte.Core.Generators.Interface do
                    ownership <- ownership(),
                    aggregation <- aggregation(type),
                    prefix <- prefix(),
-                   mappings <- mappings(type, name, major_version, prefix),
+                   mappings <- mappings({aggregation, type, name, major_version, prefix}),
                    description <- description(),
                    doc <- doc(),
                    params: params do
@@ -182,35 +182,64 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp ownership, do: member_of([:device, :server])
 
-  defp prefix, do: MappingGenerator.endpoint()
+  defp prefix,
+    do:
+      one_of([
+        MappingGenerator.endpoint_segment(),
+        MappingGenerator.endpoint_segment_param()
+      ])
 
-  defp mappings(interface_type, interface_name, interface_major, prefix) do
-    gen all retention <- MappingGenerator.retention(interface_type),
-            reliability <- MappingGenerator.reliability(interface_type),
-            expiry <- MappingGenerator.expiry(interface_type),
-            allow_unset <- MappingGenerator.allow_unset(interface_type),
-            explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type),
-            mappings <-
-              MappingGenerator.endpoint_segment()
-              |> list_of(min_length: 1, max_length: 10)
-              |> map(&Enum.uniq_by(&1, fn endpoint -> String.downcase(endpoint) end))
-              |> bind(fn list ->
-                list
-                |> Enum.map(fn postfix ->
-                  MappingGenerator.mapping(
-                    interface_type: interface_type,
-                    interface_name: interface_name,
-                    interface_major: interface_major,
-                    retention: retention,
-                    reliability: reliability,
-                    expiry: expiry,
-                    allow_unset: allow_unset,
-                    explicit_timestamp: explicit_timestamp,
-                    endpoint: prefix <> "/" <> postfix
-                  )
-                end)
-                |> fixed_list()
-              end) do
+  defp mapping(:individual, prefix, params) do
+    MappingGenerator.endpoint()
+    |> bind(fn endpoint ->
+      MappingGenerator.endpoint_segment()
+      |> bind(fn postfix ->
+        MappingGenerator.mapping(
+          params ++ [endpoint: "/" <> prefix <> endpoint <> "/" <> postfix]
+        )
+      end)
+    end)
+    |> list_of(min_length: 1, max_length: 10)
+  end
+
+  defp mapping(:object, prefix, params) do
+    MappingGenerator.endpoint()
+    |> bind(fn endpoint ->
+      MappingGenerator.endpoint_segment()
+      |> bind(fn postfix ->
+        MappingGenerator.mapping(
+          params ++ [endpoint: "/" <> prefix <> endpoint <> "/" <> postfix]
+        )
+      end)
+      |> list_of(
+        min_length: 1,
+        max_length: 10
+      )
+    end)
+  end
+
+  defp mappings({aggregation, interface_type, interface_name, interface_major, prefix}) do
+    common =
+      gen all retention <- MappingGenerator.retention(interface_type),
+              reliability <- MappingGenerator.reliability(interface_type),
+              expiry <- MappingGenerator.expiry(interface_type),
+              allow_unset <- MappingGenerator.allow_unset(interface_type),
+              explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type) do
+        [
+          retention: retention,
+          reliability: reliability,
+          expiry: expiry,
+          allow_unset: allow_unset,
+          explicit_timestamp: explicit_timestamp
+        ]
+      end
+
+    gen all common_params <- common,
+            other_params = [
+              interface_name: interface_name,
+              interface_major: interface_major
+            ],
+            mappings <- mapping(aggregation, prefix, common_params ++ other_params) do
       mappings
     end
   end
