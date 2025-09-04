@@ -33,6 +33,7 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   - **Seamless Integration:** Built on top of ExUnitProperties, it integrates smoothly with your property-based tests.
   - **Flexible Customization:** Accepts a keyword list for generator overrides, ensuring that only the generators you specify are replaced while the rest remain untouched.
   - **Improved Test Clarity:** By explicitly defining custom generators, tests become easier to understand and maintain.
+  - **Labeled Clauses:** Bind overrides to a specific clause using labels to avoid conflicts and improve readability.
 
   ## Usage Examples
 
@@ -53,12 +54,34 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
       end
   end
 
+  ### Labeling a clause for overrides
+
+  Labels let you target a specific clause for overrides via `params:`. This is useful when the left side is a pattern (not a single variable), or when you want explicit names.
+
+  Supported forms:
+
+  - Leading atom label (classic):
+
+      params gen all :payload, %{v: v} <- integer(), params: [payload: 42] do
+        v
+      end
+
+  - Bracketed label on the left-hand side (inline, works anywhere in the clause list):
+
+      params gen all [payload: %{v: v}] <- integer(),
+                     other <- string(:ascii),
+                     params: [payload: 42] do
+        {v, other}
+      end
+
+  With labels, the override uses the label name (e.g., `:payload`) instead of a variable name.
+
   ## Notes
 
   - **Integration with ExUnitProperties:** This macro leverages the existing functionality of ExUnitProperties,
     making it easy to adopt if you are already using property-based testing in your project.
   - **Macro Syntax:** The macro expects a keyword list under the `params:` key, where each key corresponds to
-    a generator name (e.g., `a`, `b`) and each value is the custom generator or fixed params to be used.
+    a generator name (e.g., `a`, `b`) or a clause label (e.g., `:payload`) and each value is the custom generator or fixed params to be used.
   - **Fallback Behavior:** For generators not specified in the override list, the macro will default to using
     the original generator from ExUnitProperties.
   - **Compile-Time Verification:** Misuse or incorrect configuration will be flagged at compile time, helping
@@ -125,16 +148,32 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
      ]}
   end
 
-  defp compile_clauses([], _, acc), do: acc
-
-  defp compile_clauses([{:<-, _, [{param, _, _}, _]} = clause | tail], params, acc) do
+  defp edit_clause([clause | tail], param, params, acc) do
     clause = override(clause, param, params)
     compile_clauses(tail, params, [clause | acc])
   end
 
-  defp compile_clauses([{:=, _, _} = clause | tail], params, acc) do
-    compile_clauses(tail, params, [clause | acc])
+  defp compile_clauses([], _, acc), do: acc
+
+  defp compile_clauses([{:<-, _, [{param, _, _}, _]} = clause | tail], params, acc),
+    do: edit_clause([clause | tail], param, params, acc)
+
+  defp compile_clauses([label, {:<-, _, [{_param, _, _}, _]} = clause | tail], params, acc)
+       when is_atom(label),
+       do: edit_clause([clause | tail], label, params, acc)
+
+  defp compile_clauses(
+         [{:<-, meta, [[{label, rest}], default_gen]} = _clause | tail],
+         params,
+         acc
+       )
+       when is_atom(label) do
+    clause = {:<-, meta, [rest, default_gen]}
+    edit_clause([clause | tail], label, params, acc)
   end
+
+  defp compile_clauses([{:=, _, _} = clause | tail], params, acc),
+    do: compile_clauses(tail, params, [clause | acc])
 
   defp split_clauses_and_params(clauses_and_params) do
     case Enum.split_while(clauses_and_params, &(not Keyword.keyword?(&1))) do

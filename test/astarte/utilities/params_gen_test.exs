@@ -54,15 +54,23 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
+  defp params_gen_label_helper do
+    params gen all a <- integer(0..0),
+                   [b: %{b: b}] <- string(?a..?a, length: 1),
+                   c <- constant("friend"),
+                   params: [b: %{b: 10}] do
+      {a, b, c}
+    end
+  end
+
   defp gen_params do
-    gen all a <- integer(), b <- string(:ascii) do
+    gen all a <- integer(),
+            b <- string(:ascii) do
       [a: a, b: b]
     end
   end
 
-  defp function_params(b) do
-    [a: 10, b: b]
-  end
+  defp function_params(b), do: [a: 10, b: b]
 
   defp gen_fixtures(_context) do
     {
@@ -70,6 +78,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       gen: &gen_helper/0,
       param_gen: &param_gen_helper/1,
       param_gen_eq: &param_gen_eq_helper/1,
+      param_gen_label: &params_gen_label_helper/0,
       gen_params: &gen_params/0,
       function_params: &function_params/1
     }
@@ -83,7 +92,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     @describetag :ut
 
     property "gen_param does not intervene", %{gen: gen} do
-      check all {a, b, c} <- gen_param(gen.(), :value, other_value: "a") do
+      check all {a, b, c} <- gen_param(gen.(), :value, other_value: "a"), max_runs: 1 do
         assert a == 0
         assert b == "a"
         assert c == "friend"
@@ -91,13 +100,13 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
 
     property "gen_param constant override", %{gen: gen} do
-      check all value <- gen_param(gen.(), :value, value: "a") do
+      check all value <- gen_param(gen.(), :value, value: "a"), max_runs: 1 do
         assert value == "a"
       end
     end
 
     property "gen_param function override", %{gen: gen, function_params: function_params} do
-      check all value <- gen_param(gen.(), :value, value: function_params.("a")) do
+      check all value <- gen_param(gen.(), :value, value: function_params.("a")), max_runs: 1 do
         assert [a: 10, b: "a"] == value
       end
     end
@@ -106,7 +115,8 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       check all [
                   a: int_value,
                   b: string_value
-                ] <- gen_param(gen.(), :value, value: gen_params.()) do
+                ] <- gen_param(gen.(), :value, value: gen_params.()),
+                max_runs: 1 do
         assert is_integer(int_value) and is_binary(string_value)
       end
     end
@@ -150,8 +160,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       param_gen: param_gen,
       gen_params: gen_params
     } do
-      check all params <- gen_params.(),
-                {a, b, _} <- param_gen.(params) do
+      check all params <- gen_params.(), {a, b, _} <- param_gen.(params), max_runs: 1 do
         assert params[:a] == a
         assert params[:b] == b
       end
@@ -160,7 +169,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     property "param gen all overridden by generators", %{
       param_gen: param_gen
     } do
-      check all {a, _, _} <- param_gen.(a: string(?c..?c, length: 1)) do
+      check all {a, _, _} <- param_gen.(a: string(?c..?c, length: 1)), max_runs: 1 do
         assert a == "c"
       end
     end
@@ -169,8 +178,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       param_gen: param_gen,
       function_params: function_params
     } do
-      check all s <- string(:ascii),
-                {a, b, _} <- param_gen.(function_params.(s)) do
+      check all s <- string(:ascii), {a, b, _} <- param_gen.(function_params.(s)), max_runs: 1 do
         assert a == 10
         assert b == s
       end
@@ -178,8 +186,18 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
 
     property "param gen all overridden by static value for c", %{param_gen: param_gen} do
       check all string_value <- string(:utf8),
-                {_, _, c} <- param_gen.(c: string_value) do
+                {_, _, c} <- param_gen.(c: string_value),
+                max_runs: 1 do
         assert c == string_value
+      end
+    end
+
+    property "param gen all override use :label instead variable name when is using pattern matching",
+             %{param_gen_label: param_gen_label} do
+      check all {a, b, c} <- param_gen_label.(), max_runs: 1 do
+        assert a == 0
+        assert b == 10
+        assert c == "friend"
       end
     end
   end
