@@ -1,0 +1,74 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeEventTest do
+  use ExUnit.Case, async: true
+  use ExUnitProperties
+
+  alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.ValueType
+  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
+
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
+
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeEvent,
+    as: ValueChangeEventGenerator
+
+  @moduletag :trigger
+  @moduletag :simple_event
+  @moduletag :value_change_event
+
+  @doc false
+  describe "triggers value_change_event generator" do
+    @describetag :success
+    @describetag :ut
+    property "generates valid value_change_event" do
+      check all value_change_event <- ValueChangeEventGenerator.value_change_event() do
+        assert %ValueChangeEvent{type: "value_change"} = value_change_event
+      end
+    end
+
+    # property "check mapping types using passed interface generator" do
+    #   check all interface <- InterfaceGenerator.interface(),
+    #             %Interface{
+    #               aggregation: aggregation,
+    #               mappings: mappings
+    #             } = interface,
+    #             %ValueChangeEvent{
+    #               path: path,
+    #               old_bson_value: old_bson_value,
+    #               new_bson_value: new_bson_value
+    #             } <-
+    #               ValueChangeEventGenerator.value_change_event(interface: interface)
+    #               |> filter(
+    #                 fn %ValueChangeEvent{path: path} -> not is_nil(path) end,
+    #                 1_000_000
+    #               ),
+    #             %Mapping{type: type} =
+    #               mappings
+    #               |> Enum.find(fn %Mapping{endpoint: endpoint} ->
+    #                 ValueGenerator.path_matches_endpoint?(aggregation, endpoint, path)
+    #               end) do
+    #     assert (is_nil(old_bson_value) or :ok == ValueType.validate_value(type, old_bson_value)) and
+    #              (is_nil(new_bson_value) or :ok == ValueType.validate_value(type, new_bson_value))
+    #   end
+    # end
+  end
+end
