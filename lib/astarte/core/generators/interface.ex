@@ -144,6 +144,17 @@ defmodule Astarte.Core.Generators.Interface do
   @spec major_version :: StreamData.t(integer())
   def major_version, do: integer(0..9)
 
+  @doc false
+  @spec minor_version(integer()) :: StreamData.t(integer())
+  def minor_version(0), do: minor_version(0, 1)
+  def minor_version(major_version), do: minor_version(major_version, 0)
+  @spec minor_version(integer(), integer()) :: StreamData.t(integer())
+  def minor_version(_major_version, min) when min >= 255,
+    do: raise(ArgumentError, "Maximum interface minor_version exceeded")
+
+  def minor_version(0, min), do: integer(min..255)
+  def minor_version(_major_version, min), do: integer(min..255)
+
   defp name_optional do
     gen all first <- string([?a..?z, ?A..?Z], length: 1),
             rest <- string(:alphanumeric, max_length: 10),
@@ -173,13 +184,6 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp id(interface_name, major_version),
     do: constant(CQLUtils.interface_id(interface_name, major_version))
-
-  defp minor_version(major_version) do
-    case major_version do
-      0 -> integer(1..255)
-      _n -> integer(0..255)
-    end
-  end
 
   defp ownership, do: member_of([:device, :server])
 
