@@ -27,6 +27,7 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   alias Astarte.Core.Mapping
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
 
   @moduletag :core
   @moduletag :interface
@@ -86,6 +87,40 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   ]
 
   @doc false
+  describe "interface utilities" do
+    test "validate endpoints in :individual" do
+      for {endpoints, results} <- @endpoint_cases do
+        mappings =
+          for endpoint <- endpoints do
+            %Mapping{endpoint: endpoint}
+          end
+
+        uniq_mappings = InterfaceGenerator.uniq_endpoints(mappings)
+
+        uniq_endpoints =
+          for %Mapping{endpoint: endpoint} <- uniq_mappings do
+            endpoint
+          end
+
+        assert MapSet.new(results) == MapSet.new(uniq_endpoints)
+      end
+    end
+
+    property "endpoint_by_aggregation/2" do
+      check all aggregation <- InterfaceGenerator.type() |> InterfaceGenerator.aggregation(),
+                endpoint <- MappingGenerator.endpoint() do
+        check_endpoint =
+          case aggregation do
+            :individual -> endpoint
+            :object -> endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
+          end
+
+        assert check_endpoint == InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+      end
+    end
+  end
+
+  @doc false
   describe "interface generator" do
     @describetag :success
     @describetag :ut
@@ -104,24 +139,6 @@ defmodule Astarte.Core.Generators.InterfaceTest do
                 changes <- InterfaceGenerator.to_changes(interface),
                 changeset = Interface.changeset(%Interface{}, changes) do
         assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
-      end
-    end
-
-    test "validate endpoints in :individual" do
-      for {endpoints, results} <- @endpoint_cases do
-        mappings =
-          for endpoint <- endpoints do
-            %Mapping{endpoint: endpoint}
-          end
-
-        uniq_mappings = InterfaceGenerator.uniq_endpoints(mappings)
-
-        uniq_endpoints =
-          for %Mapping{endpoint: endpoint} <- uniq_mappings do
-            endpoint
-          end
-
-        assert MapSet.new(results) == MapSet.new(uniq_endpoints)
       end
     end
 

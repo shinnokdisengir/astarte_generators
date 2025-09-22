@@ -68,20 +68,21 @@ defmodule Astarte.Core.Generators.Mapping.Value do
           |> fixed_map())
       )
 
-  defp build_package(%Interface{aggregation: :individual} = interface) do
+  defp build_package(%Interface{aggregation: :individual = aggregation} = interface) do
     %Interface{mappings: mappings} = interface
 
     gen all %Mapping{endpoint: endpoint, value_type: value_type} <- member_of(mappings),
+            endpoint = InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint),
             path <- endpoint_path(endpoint),
             value <- build_value(value_type) do
       %{path: path, value: value, type: value_type}
     end
   end
 
-  defp build_package(%Interface{aggregation: :object} = interface) do
+  defp build_package(%Interface{aggregation: :object = aggregation} = interface) do
     %Interface{mappings: [%Mapping{endpoint: endpoint} | _] = mappings} = interface
 
-    endpoint = endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
+    endpoint = InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
 
     gen all path <- endpoint_path(endpoint),
             type <-
@@ -119,17 +120,21 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   Returns true if `path` matches `endpoint` according to the given `aggregation`.
   """
   @spec path_matches_endpoint?(:individual | :object, String.t(), String.t()) :: boolean()
-  def path_matches_endpoint?(:individual, endpoint, path),
+  def path_matches_endpoint?(:individual = aggregation, endpoint, path),
     do:
       path_matches_endpoint?(
-        endpoint |> Mapping.normalize_endpoint() |> String.split("/"),
+        InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+        |> Mapping.normalize_endpoint()
+        |> String.split("/"),
         path |> String.split("/")
       )
 
-  def path_matches_endpoint?(:object, endpoint, path),
+  def path_matches_endpoint?(:object = aggregation, endpoint, path),
     do:
       path_matches_endpoint?(
-        endpoint |> Mapping.normalize_endpoint() |> String.split("/") |> Enum.drop(-1),
+        InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+        |> Mapping.normalize_endpoint()
+        |> String.split("/"),
         path |> String.split("/")
       )
 

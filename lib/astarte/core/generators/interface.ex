@@ -237,6 +237,13 @@ defmodule Astarte.Core.Generators.Interface do
 
   # Utilities
 
+  @doc false
+  @spec endpoint_by_aggregation(:individual | :object, String.t()) :: String.t()
+  def endpoint_by_aggregation(:individual, endpoint), do: endpoint
+
+  def endpoint_by_aggregation(:object, endpoint),
+    do: endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
+
   @normalized_param ""
 
   @doc false
