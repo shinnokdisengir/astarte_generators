@@ -136,6 +136,35 @@ defmodule Astarte.Core.Generators.InterfaceTest do
       end
     end
 
+    property "minor_version/1 returns values within expected bounds" do
+      check all major_version <- InterfaceGenerator.major_version(),
+                minor_version <- InterfaceGenerator.minor_version(major_version) do
+        assert if(major_version == 0, do: minor_version in 1..255, else: minor_version in 0..255)
+      end
+    end
+
+    property "minor_version/2 honours minimum parameter" do
+      check all major_version <- InterfaceGenerator.major_version(),
+                min <-
+                  (case major_version do
+                     0 -> integer(1..254)
+                     _ -> integer(0..254)
+                   end),
+                minor_version <- InterfaceGenerator.minor_version(major_version, min) do
+        assert minor_version in min..255
+      end
+    end
+
+    property "minor_version/2 raises when minimum reaches upper bound" do
+      check all major_version <- InterfaceGenerator.major_version(),
+                min <- integer(255..1_000_000_000),
+                max_runs: 1 do
+        assert_raise ArgumentError, "Maximum interface minor_version exceeded", fn ->
+          InterfaceGenerator.minor_version(major_version, min)
+        end
+      end
+    end
+
     @tag issue: 45
     property "custom interface creation" do
       gen_interface_changes =
