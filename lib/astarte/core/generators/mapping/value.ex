@@ -29,11 +29,15 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
+  @type type_t() :: %{String.t() => ValueTypeGenerator.valid_t()}
+  @type value_t() :: %{String.t() => any()}
+  @type t() :: %{path: String.t(), type: type_t(), value: value_t()}
+
   @doc """
   Generates a valid value based on interface passed or auto-created
   """
-  @spec value() :: StreamData.t(map())
-  @spec value(params :: keyword()) :: StreamData.t(map())
+  @spec value() :: StreamData.t(t())
+  @spec value(params :: keyword()) :: StreamData.t(t())
   def value(params \\ []) do
     gen_interface_base =
       params gen all interface <- InterfaceGenerator.interface(), params: params do
@@ -49,7 +53,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
     gen all %Mapping{endpoint: endpoint, value_type: value_type} <- member_of(mappings),
             path <- endpoint_path(endpoint),
             value <- build_value(value_type) do
-      %{path: path, value: value}
+      %{path: path, value: value, type: value_type}
     end
   end
 
@@ -59,13 +63,22 @@ defmodule Astarte.Core.Generators.Mapping.Value do
     endpoint = endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
 
     gen all path <- endpoint_path(endpoint),
-            value <-
+            %{value: value, type: type} <-
               mappings
               |> Map.new(fn %Mapping{endpoint: endpoint, value_type: value_type} ->
-                {endpoint_postfix(endpoint), build_value(value_type)}
+                {endpoint_postfix(endpoint), build_value(value_type) |> map(&{value_type, &1})}
               end)
-              |> optional_map() do
-      %{path: path, value: value}
+              |> optional_map()
+              |> map(fn entries ->
+                Enum.reduce(entries, %{value: %{}, type: %{}}, fn {postfix, {value_type, value}},
+                                                                  %{value: values, type: types} ->
+                  %{
+                    value: Map.put(values, postfix, value),
+                    type: Map.put(types, postfix, value_type)
+                  }
+                end)
+              end) do
+      %{path: path, value: value, type: type}
     end
   end
 
@@ -116,4 +129,34 @@ defmodule Astarte.Core.Generators.Mapping.Value do
     do: path_matches_endpoint?(endpoints, paths)
 
   defp path_matches_endpoint?(_, _), do: false
+
+  @doc """
+  Returns type and value once given the Value package and the full search path.
+  """
+  @spec type_value_from_path(:individual | :object, String.t(), map()) ::
+          %{type: ValueTypeGenerator.valid_t(), value: any()} | :error
+  def type_value_from_path(:individual, search_path, %{
+        path: search_path,
+        type: type,
+        value: value
+      }),
+      do: %{type: type, value: value}
+
+  def type_value_from_path(:individual, _, _), do: :error
+
+  def type_value_from_path(:object, search_path, %{path: base_path, type: type, value: value}),
+    do:
+      type_value_from_path(
+        search_path,
+        Enum.map(type, fn {postfix, type} ->
+          {base_path <> "/" <> postfix, type, Map.fetch!(value, postfix)}
+        end)
+      )
+
+  defp type_value_from_path(_search_path, []), do: :error
+
+  defp type_value_from_path(search_path, [{search_path, type, value} | _]),
+    do: %{type: type, value: value}
+
+  defp type_value_from_path(search_path, [_ | tail]), do: type_value_from_path(search_path, tail)
 end
