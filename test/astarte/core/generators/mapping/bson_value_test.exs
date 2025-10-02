@@ -26,6 +26,7 @@ defmodule Astarte.Core.Generators.Mapping.BSONValueTest do
   alias Astarte.Core.Mapping.ValueType
 
   alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
+  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
   @moduletag :core
@@ -96,6 +97,15 @@ defmodule Astarte.Core.Generators.Mapping.BSONValueTest do
         for {value, bson_value} <- Enum.zip(values, decoded_values) do
           assert %Cyanide.Binary{subtype: :generic, data: ^value} = bson_value
         end
+      end
+    end
+
+    @tag :temp
+    property "validate encoded value package" do
+      check all package <- ValueGenerator.value(),
+                bson_package <- BSONValueGenerator.to_bson_value(package) do
+        IO.inspect(bson_package)
+        # assert %Cyanide.Binary{subtype: :generic, data: ^value} = bson_value
       end
     end
   end
